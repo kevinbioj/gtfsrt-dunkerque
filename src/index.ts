@@ -4,7 +4,7 @@ import GtfsRealtime from "gtfs-realtime-bindings";
 import { Hono } from "hono";
 import { Temporal } from "temporal-polyfill";
 
-import { GTFS_RESOURCE_URL, PORT, REQUESTOR_REF, SIRI_ENDPOINT, SIRI_RATELIMIT, TOKYO_ENDPOINT } from "./config.js";
+import { GTFS_RESOURCE_URL, PORT, REFRESH_INTERVAL, REQUESTOR_REF, SIRI_ENDPOINT, TOKYO_ENDPOINT } from "./config.js";
 import type { StopTime, Trip } from "./gtfs/import-resource.js";
 import { useGtfsResource } from "./gtfs/load-resource.js";
 import { handleRequest } from "./gtfs-rt/handle-request.js";
@@ -202,7 +202,7 @@ while (true) {
 		error = cause;
 	}
 
-	const waitingTime = Math.max(SIRI_RATELIMIT - (Date.now() - startedAt), 0);
+	const waitingTime = Math.max(REFRESH_INTERVAL - (Date.now() - startedAt), 0);
 	if (error !== undefined) {
 		console.error(
 			`✘ Something wrong occurred while computing trip updates and vehicle positions, retrying in ${waitingTime}ms`,
