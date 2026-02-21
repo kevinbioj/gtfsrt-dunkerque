@@ -156,6 +156,10 @@ while (true) {
 		const vehicles = await fetchVehicles(TOKYO_ENDPOINT);
 
 		for (const vehicle of vehicles) {
+			if (vehicle.course === 0 || +vehicle.ligne === 0) {
+				continue;
+			}
+
 			const information = journeyInformation.get(vehicle.course);
 			const vehicleRef = String(vehicle.numero);
 			const recordedAt = Math.floor(
