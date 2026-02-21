@@ -1,0 +1,11 @@
+services:
+  producer:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    container_name: gtfsrt-dunkerque
+    environment:
+      - TZ=Europe/Paris
+    ports:
+      - "127.0.0.1:50018:3000"
+    restart: unless-stopped

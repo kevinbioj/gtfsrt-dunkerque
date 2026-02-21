@@ -1,0 +1,35 @@
+{
+	"name": "@bus-tracker/gtfsrt-dunkerque",
+	"description": "GTFS-RT data producer for DKBus (Dunkerque, France)",
+	"version": "0.1.0",
+	"author": "Kevin BIOJOUT <biojoutk1106@gmail.com>",
+	"license": "MIT",
+	"main": "dist/index.js",
+	"type": "module",
+	"scripts": {
+		"dev": "tsx src/index.ts",
+		"lint": "biome lint",
+		"format": "biome format --write",
+		"build": "tsc",
+		"start": "node dist/index.js"
+	},
+	"packageManager": "pnpm@10.30.0+sha512.2b5753de015d480eeb88f5b5b61e0051f05b4301808a82ec8b840c9d2adf7748eb352c83f5c1593ca703ff1017295bc3fdd3119abb9686efc96b9fcb18200937",
+	"dependencies": {
+		"@hono/node-server": "^1.19.9",
+		"croner": "^10.0.1",
+		"decompress": "^4.2.1",
+		"fast-xml-parser": "^5.3.7",
+		"gtfs-realtime-bindings": "^1.1.1",
+		"hono": "^4.12.1",
+		"papaparse": "^5.5.3",
+		"temporal-polyfill": "^0.3.0"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.4.4",
+		"@types/decompress": "^4.2.7",
+		"@types/node": "^25.3.0",
+		"@types/papaparse": "^5.5.2",
+		"tsx": "^4.21.0",
+		"typescript": "^5.9.3"
+	}
+}
