@@ -5,13 +5,34 @@ import { parseCsv } from "../utils/parse-csv.js";
 import { getPlainTime } from "../utils/temporal-cache.js";
 
 export async function importResource(directory: string) {
+	const routes = await importRoutes(directory);
 	const services = await importServices(directory);
 	const stops = await importStops(directory);
 	const trips = await importTrips(directory, services, stops);
-	return { services, trips };
+	return { routes, services, trips };
 }
 
 export type GtfsResource = Awaited<ReturnType<typeof importResource>>;
+
+// --- importRoutes
+
+type RouteRecord = { route_id: string; route_short_name: string };
+
+type Route = { id: string; name: string };
+
+async function importRoutes(directory: string) {
+	const routes = new Map<string, Route>();
+
+	const routesPath = join(directory, "routes.txt");
+	await parseCsv<RouteRecord>(routesPath, (routeRecord) => {
+		routes.set(routeRecord.route_short_name, {
+			id: routeRecord.route_id,
+			name: routeRecord.route_short_name,
+		});
+	});
+
+	return routes;
+}
 
 // --- importServices
 

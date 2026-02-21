@@ -162,6 +162,8 @@ while (true) {
 				Temporal.Instant.from(`${vehicle.jour.replace(" ", "T")}+01:00`).epochMilliseconds / 1000,
 			);
 
+			const routeId = information?.trip.routeId ?? gtfsResource.gtfs.routes.get(vehicle.ligne)?.id;
+
 			store.vehiclePositions.set(`VM:${vehicleRef}`, {
 				currentStatus: information?.currentStopStatus,
 				currentStopSequence: information?.currentStop?.sequence,
@@ -178,12 +180,12 @@ while (true) {
 				},
 				stopId: information?.currentStop?.stop.id,
 				timestamp: recordedAt,
-				trip: information
+				trip: routeId
 					? {
-							tripId: information.trip.id,
-							routeId: information.trip.routeId,
-							directionId: information.trip.directionId,
-							scheduleRelationship: information.trip
+							tripId: information?.trip.id,
+							routeId,
+							directionId: information?.trip.directionId,
+							scheduleRelationship: information?.trip
 								? GtfsRealtime.transit_realtime.TripDescriptor.ScheduleRelationship.SCHEDULED
 								: GtfsRealtime.transit_realtime.TripDescriptor.ScheduleRelationship.ADDED,
 						}
