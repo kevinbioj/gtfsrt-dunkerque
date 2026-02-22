@@ -31,19 +31,29 @@ hono.get("/", (c) =>
 	handleRequest(c, c.req.query("format") === "json" ? "json" : "protobuf", store.tripUpdates, store.vehiclePositions),
 );
 serve({ fetch: hono.fetch, port: PORT });
-console.log(`|> Listening on :${PORT}`);
+console.log(`➔ Listening on :${PORT}`);
 
 const gtfsResource = await useGtfsResource(GTFS_RESOURCE_URL);
 
 let monitoredLines = await fetchMonitoredLines(SIRI_ENDPOINT, REQUESTOR_REF);
 setInterval(
-	async () => (monitoredLines = await fetchMonitoredLines(SIRI_ENDPOINT, REQUESTOR_REF)),
+	async () => {
+		console.log("➔ Updating monitored lines list from SIRI");
+		try {
+			monitoredLines = await fetchMonitoredLines(SIRI_ENDPOINT, REQUESTOR_REF);
+			console.log(`✓ ${monitoredLines.length} lines to be monitored have been registered`);
+		} catch (cause) {
+			console.error(`✘ Failed to update monitored lines`, cause);
+		}
+	},
 	Temporal.Duration.from({ hours: 1 }).total("milliseconds"),
 );
 
 while (true) {
 	const startedAt = Date.now();
 	let error: unknown | undefined;
+
+	console.log("➔ Fetching data from SIRI & Tokyo");
 
 	const journeyInformation = new Map<
 		number,

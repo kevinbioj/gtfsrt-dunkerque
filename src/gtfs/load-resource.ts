@@ -35,27 +35,34 @@ export async function useGtfsResource(resourceUrl: string) {
 
 	currentInterval = setInterval(
 		async () => {
-			console.log("|> Checking for GTFS resource staleness.");
+			console.log("➔ Checking for GTFS resource staleness.");
 
-			const response = await fetch(resourceUrl, {
-				method: "HEAD",
-				signal: AbortSignal.timeout(30_000),
-			});
+			try {
+				const response = await fetch(resourceUrl, {
+					method: "HEAD",
+					signal: AbortSignal.timeout(30_000),
+				});
 
-			if (!response.ok) {
-				console.warn("   Unable to fetch GTFS staleness data, aborting.");
+				if (!response.ok) {
+					console.error(`    ⛛ Got HTTP ${response.status}, aborting.`);
+					return;
+				}
+
+				if (response.headers.get("last-modified") === resource.lastModified) {
+					console.log("    ⛛ GTFS resource is up-to-date.");
+					return;
+				}
+
+				console.log("    ⛛ GTFS resource is stale, requesting update.");
+
+				const newResource = await loadResource(resourceUrl);
+				resource.gtfs = newResource.resource;
+				resource.lastModified = newResource.lastModified;
+				resource.operatingTripsByHeadsign = getOperatingTripsByHeadsign(resource.gtfs);
+				resource.importedAt = Temporal.Now.instant();
+			} catch (cause) {
+				console.error(`✘ GTFS update routine failed:`, cause);
 			}
-
-			if (response.headers.get("last-modified") === resource.lastModified) {
-				console.log("   GTFS resource is up-to-date.");
-			}
-
-			console.log("     GTFS resource is stale: updating.");
-
-			const newResource = await loadResource(resourceUrl);
-			resource.gtfs = newResource.resource;
-			resource.lastModified = newResource.lastModified;
-			resource.importedAt = Temporal.Now.instant();
 		},
 		Temporal.Duration.from({ minutes: 5 }).total("milliseconds"),
 	);
@@ -66,10 +73,10 @@ export async function useGtfsResource(resourceUrl: string) {
 // --- loadResource
 
 async function loadResource(resourceUrl: string) {
-	console.log(`|> Loading GTFS resource at '${resourceUrl}'.`);
+	console.log(`➔ Loading GTFS resource at '${resourceUrl}'.`);
 
-	const workingDirectory = await mkdtemp(join(tmpdir(), "gtfsrt-lia_"));
-	console.log(`     Generated working directory at '${workingDirectory}'.`);
+	const workingDirectory = await mkdtemp(join(tmpdir(), "gtfsrt-dunkerque_"));
+	console.log(`    ⛛ Generated working directory at '${workingDirectory}'.`);
 
 	try {
 		const { lastModified } = await downloadResource(resourceUrl, workingDirectory);
