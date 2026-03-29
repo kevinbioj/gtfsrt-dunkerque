@@ -53,6 +53,8 @@ while (true) {
 	const startedAt = Date.now();
 	let error: unknown | undefined;
 
+	let timeDelta: number | undefined;
+
 	console.log("➔ Fetching data from SIRI & Tokyo");
 
 	const journeyInformation = new Map<
@@ -124,6 +126,15 @@ while (true) {
 							return [];
 						}
 
+						if (timeDelta === undefined && (call.ExpectedArrivalTime ?? call.ExpectedDepartureTime)) {
+							const aimedOffset = call.AimedArrivalTime.slice(-5, -3);
+							const expectedOffset = (call.ExpectedArrivalTime ?? call.ExpectedDepartureTime ?? aimedOffset).slice(
+								-5,
+								-3,
+							);
+							timeDelta = +aimedOffset - +expectedOffset;
+						}
+
 						const expectedArrival = call.ExpectedArrivalTime
 							? Temporal.Instant.from(call.ExpectedArrivalTime)
 							: undefined;
@@ -132,9 +143,11 @@ while (true) {
 							: undefined;
 
 						return {
-							arrival: expectedArrival ? { time: Math.floor(expectedArrival.epochMilliseconds / 1000) } : undefined,
+							arrival: expectedArrival
+								? { time: Math.floor(expectedArrival.subtract({ hours: timeDelta }).epochMilliseconds / 1000) }
+								: undefined,
 							departure: expectedDeparture
-								? { time: Math.floor(expectedDeparture.epochMilliseconds / 1000) }
+								? { time: Math.floor(expectedDeparture.subtract({ hours: timeDelta }).epochMilliseconds / 1000) }
 								: undefined,
 							stopId: stopTime.stop.id,
 							stopSequence: stopTime.sequence,
@@ -173,7 +186,7 @@ while (true) {
 			const information = journeyInformation.get(vehicle.course);
 			const vehicleRef = String(vehicle.numero);
 			const recordedAt = Math.floor(
-				Temporal.Instant.from(`${vehicle.jour.replace(" ", "T")}+01:00`).epochMilliseconds / 1000,
+				Temporal.PlainDateTime.from(vehicle.jour).toZonedDateTime("Europe/Paris").epochMilliseconds / 1000,
 			);
 
 			const routeId = information?.trip.routeId ?? gtfsResource.gtfs.routes.get(vehicle.ligne)?.id;
