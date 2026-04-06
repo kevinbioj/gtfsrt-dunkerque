@@ -2,6 +2,7 @@ import { setTimeout } from "node:timers/promises";
 import { serve } from "@hono/node-server";
 import GtfsRealtime from "gtfs-realtime-bindings";
 import { Hono } from "hono";
+import { rateLimiter } from "hono-rate-limiter";
 import { Temporal } from "temporal-polyfill";
 
 import { GTFS_RESOURCE_URL, PORT, REFRESH_INTERVAL, REQUESTOR_REF, SIRI_ENDPOINT, TOKYO_ENDPOINT } from "./config.js";
@@ -23,6 +24,14 @@ console.log(` ,----.,--------.,------.,---.        ,------.,--------. ,------.  
 const store = useRealtimeStore();
 
 const hono = new Hono();
+hono.use(
+	rateLimiter({
+		windowMs: 10_000,
+		limit: 1,
+		keyGenerator: (c) => `${c.req.header("CF-Connecting-IP")}_${c.req.method}_${c.req.path}`,
+		handler: (c) => c.json({ code: 429, message: "Too many requests, please try again later." }, 429),
+	}),
+);
 hono.get("/trip-updates", (c) => handleRequest(c, "protobuf", store.tripUpdates, null));
 hono.get("/trip-updates.json", (c) => handleRequest(c, "json", store.tripUpdates, null));
 hono.get("/vehicle-positions", (c) => handleRequest(c, "protobuf", null, store.vehiclePositions));
