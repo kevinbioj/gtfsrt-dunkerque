@@ -9,7 +9,7 @@ export const resetServiceOperationCache = () => cache.clear();
 export function isServiceOperatingOn(service: Service, date: Temporal.PlainDate) {
 	const cached = cache.get(service.id);
 	if (cached?.date.equals(date)) {
-		return cached;
+		return cached.operating;
 	}
 
 	cache.delete(service.id);
@@ -32,7 +32,7 @@ export function isServiceOperatingOn(service: Service, date: Temporal.PlainDate)
 		return false;
 	}
 
-	const workingOnDay = service.days[date.dayOfWeek];
+	const workingOnDay = service.days[date.dayOfWeek - 1];
 	cache.set(service.id, { date, operating: workingOnDay });
 	return workingOnDay;
 }
