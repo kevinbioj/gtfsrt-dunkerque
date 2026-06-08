@@ -1,5 +1,3 @@
-import { Temporal } from "temporal-polyfill";
-
 import type { Service } from "../gtfs/import-resource.js";
 
 const cache = new Map<string, { date: Temporal.PlainDate; operating: boolean }>();

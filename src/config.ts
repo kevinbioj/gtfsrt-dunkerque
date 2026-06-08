@@ -1,5 +1,3 @@
-import { Temporal } from "temporal-polyfill";
-
 export const GTFS_RESOURCE_URL = "https://www.data.gouv.fr/api/1/datasets/r/f51fabfb-9d7a-44b7-bd03-d1032337fb80";
 export const PORT = 3000;
 export const REFRESH_INTERVAL = Temporal.Duration.from({ seconds: 15 }).total("milliseconds");

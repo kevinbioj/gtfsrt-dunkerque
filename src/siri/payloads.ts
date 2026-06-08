@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto";
-import { Temporal } from "temporal-polyfill";
 
 export const LINES_DISCOVERY = (requestorRef: string) =>
 	`<S:Envelope xmlns:S="http://schemas.xmlsoap.org/soap/envelope/" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">

@@ -1,5 +1,3 @@
-import { Temporal } from "temporal-polyfill";
-
 import type { GtfsResource, Trip } from "../gtfs/import-resource.js";
 
 import { isServiceOperatingOn } from "./is-service-operating-on.js";

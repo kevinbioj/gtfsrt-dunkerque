@@ -3,7 +3,6 @@ import { serve } from "@hono/node-server";
 import GtfsRealtime from "gtfs-realtime-bindings";
 import { Hono } from "hono";
 import { rateLimiter } from "hono-rate-limiter";
-import { Temporal } from "temporal-polyfill";
 
 import { GTFS_RESOURCE_URL, PORT, REFRESH_INTERVAL, REQUESTOR_REF, SIRI_ENDPOINT, TOKYO_ENDPOINT } from "./config.js";
 import type { StopTime, Trip } from "./gtfs/import-resource.js";

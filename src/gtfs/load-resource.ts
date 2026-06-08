@@ -2,7 +2,6 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Cron } from "croner";
-import { Temporal } from "temporal-polyfill";
 
 import { getOperatingTripsByHeadsign } from "../utils/get-operating-trips.js";
 import { resetServiceOperationCache } from "../utils/is-service-operating-on.js";
