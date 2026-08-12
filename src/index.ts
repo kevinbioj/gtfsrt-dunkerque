@@ -197,7 +197,7 @@ while (true) {
 				Temporal.PlainDateTime.from(vehicle.jour).toZonedDateTime("Europe/Paris").epochMilliseconds / 1000,
 			);
 
-			const routeId = information?.trip.routeId ?? gtfsResource.gtfs.routes.get(vehicle.ligne)?.id;
+			const routeId = information?.trip.routeId ?? gtfsResource.gtfs.routes.get(String(vehicle.ligne))?.id;
 
 			store.vehiclePositions.set(`VM:${vehicleRef}`, {
 				currentStatus: information?.currentStopStatus,
