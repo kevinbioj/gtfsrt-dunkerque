@@ -4,4 +4,4 @@ export const REFRESH_INTERVAL = Temporal.Duration.from({ seconds: 15 }).total("m
 export const REQUESTOR_REF = "open-data";
 export const SIRI_ENDPOINT = "https://ara-api.enroute.mobi/dkbus/siri";
 export const SWEEP_THRESHOLD = Temporal.Duration.from({ minutes: 10 }).total("milliseconds");
-export const TOKYO_ENDPOINT = atob("aHR0cHM6Ly93d3cuZGtidXMuY29tL3ZlaGljdWxlcy5waHA=");
+export const TOKYO_ENDPOINT = atob("aHR0cHM6Ly93d3cuZGtidXMuY29tL2Z1bmN0aW9ucy92ZWhpY3VsZXMucGhw");
