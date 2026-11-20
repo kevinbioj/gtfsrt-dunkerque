@@ -4,14 +4,12 @@ import GtfsRealtime from "gtfs-realtime-bindings";
 import { Hono } from "hono";
 import { rateLimiter } from "hono-rate-limiter";
 
-import { GTFS_RESOURCE_URL, PORT, REFRESH_INTERVAL, REQUESTOR_REF, SIRI_ENDPOINT, TOKYO_ENDPOINT } from "./config.js";
-import type { StopTime, Trip } from "./gtfs/import-resource.js";
+import { GTFS_RESOURCE_URL, PORT, REFRESH_INTERVAL, REQUESTOR_REF, SIRI_ENDPOINT } from "./config.js";
 import { useGtfsResource } from "./gtfs/load-resource.js";
 import { handleRequest } from "./gtfs-rt/handle-request.js";
 import { useRealtimeStore } from "./gtfs-rt/use-realtime-store.js";
 import { fetchEstimatedTimetable } from "./siri/fetch-estimated-timetable.js";
 import { fetchMonitoredLines } from "./siri/fetch-monitored-lines.js";
-import { fetchVehicles } from "./tokyo/fetch-vehicles.js";
 
 console.log(` ,----.,--------.,------.,---.        ,------.,--------. ,------.                  ,--.                                        
 '  .-./'--.  .--'|  .---'   .-',-----.|  .--. '--.  .--' |  .-.  \\ ,--.,--.,--,--, |  |,-. ,---. ,--.--. ,---. ,--.,--. ,---.  
@@ -31,13 +29,9 @@ hono.use(
 		handler: (c) => c.json({ code: 429, message: "Too many requests, please try again later." }, 429),
 	}),
 );
-hono.get("/trip-updates", (c) => handleRequest(c, "protobuf", store.tripUpdates, null));
-hono.get("/trip-updates.json", (c) => handleRequest(c, "json", store.tripUpdates, null));
-hono.get("/vehicle-positions", (c) => handleRequest(c, "protobuf", null, store.vehiclePositions));
-hono.get("/vehicle-positions.json", (c) => handleRequest(c, "json", null, store.vehiclePositions));
-hono.get("/", (c) =>
-	handleRequest(c, c.req.query("format") === "json" ? "json" : "protobuf", store.tripUpdates, store.vehiclePositions),
-);
+hono.get("/trip-updates", (c) => handleRequest(c, "protobuf", store.tripUpdates));
+hono.get("/trip-updates.json", (c) => handleRequest(c, "json", store.tripUpdates));
+hono.get("/", (c) => handleRequest(c, c.req.query("format") === "json" ? "json" : "protobuf", store.tripUpdates));
 serve({ fetch: hono.fetch, port: PORT });
 console.log(`➔ Listening on :${PORT}`);
 
@@ -63,18 +57,9 @@ while (true) {
 
 	let timeDelta: number | undefined;
 
-	console.log("➔ Fetching data from SIRI & Tokyo");
+	console.log("➔ Fetching data from SIRI");
 
-	const journeyInformation = new Map<
-		number,
-		{
-			trip: Trip;
-			currentStop?: StopTime;
-			currentStopStatus?: GtfsRealtime.transit_realtime.VehiclePosition.VehicleStopStatus;
-		}
-	>();
 	let tripUpdatesCount = 0;
-	let vehiclePositionsCount = 0;
 
 	try {
 		const journeyVersionFrames = await fetchEstimatedTimetable(SIRI_ENDPOINT, REQUESTOR_REF, monitoredLines);
@@ -112,20 +97,6 @@ while (true) {
 				if (trip === undefined) {
 					continue;
 				}
-
-				const currentCall = calls.find((call) => call.DepartureStatus !== "departed");
-				const currentStop = currentCall ? trip.stopTimes.get(currentCall.StopPointRef) : undefined;
-				const currentStopStatus = currentCall
-					? GtfsRealtime.transit_realtime.VehiclePosition.VehicleStopStatus[
-							currentCall.ArrivalStatus === "arrived" ? "STOPPED_AT" : "IN_TRANSIT_TO"
-						]
-					: undefined;
-
-				journeyInformation.set(journey.DatedVehicleJourneyRef, {
-					trip,
-					currentStop,
-					currentStopStatus,
-				});
 
 				store.tripUpdates.set(`ET:${trip.id}`, {
 					stopTimeUpdate: calls.flatMap((call) => {
@@ -183,70 +154,11 @@ while (true) {
 		error = cause;
 	}
 
-	try {
-		const vehicles = await fetchVehicles(TOKYO_ENDPOINT);
-
-		for (const vehicle of vehicles) {
-			if (vehicle.course === 0 || +vehicle.ligne === 0) {
-				continue;
-			}
-
-			const information = journeyInformation.get(vehicle.course);
-			const vehicleRef = String(vehicle.numero);
-			const recordedAt = Math.floor(
-				Temporal.PlainDateTime.from(vehicle.jour).toZonedDateTime("Europe/Paris").epochMilliseconds / 1000,
-			);
-
-			const routeId = information?.trip.routeId ?? gtfsResource.gtfs.routes.get(String(vehicle.ligne))?.id;
-
-			store.vehiclePositions.set(`VM:${vehicleRef}`, {
-				currentStatus: information?.currentStopStatus,
-				currentStopSequence: information?.currentStop?.sequence,
-				occupancyStatus:
-					vehicle.comptage > 60
-						? GtfsRealtime.transit_realtime.VehiclePosition.OccupancyStatus.FULL
-						: vehicle.comptage > 30
-							? GtfsRealtime.transit_realtime.VehiclePosition.OccupancyStatus.FEW_SEATS_AVAILABLE
-							: GtfsRealtime.transit_realtime.VehiclePosition.OccupancyStatus.MANY_SEATS_AVAILABLE,
-				position: {
-					latitude: +vehicle.lat,
-					longitude: +vehicle.lng,
-					bearing: vehicle.cap[0],
-				},
-				stopId: information?.currentStop?.stop.id,
-				timestamp: recordedAt,
-				trip: routeId
-					? {
-							tripId: information?.trip.id,
-							routeId,
-							directionId: information?.trip.directionId,
-							scheduleRelationship: information?.trip
-								? GtfsRealtime.transit_realtime.TripDescriptor.ScheduleRelationship.SCHEDULED
-								: GtfsRealtime.transit_realtime.TripDescriptor.ScheduleRelationship.ADDED,
-						}
-					: undefined,
-				vehicle: {
-					id: vehicleRef,
-					label: vehicleRef,
-				},
-			});
-
-			vehiclePositionsCount += 1;
-		}
-	} catch (cause) {
-		error = cause;
-	}
-
 	const waitingTime = Math.max(REFRESH_INTERVAL - (Date.now() - startedAt), 0);
 	if (error !== undefined) {
-		console.error(
-			`✘ Something wrong occurred while computing trip updates and vehicle positions, retrying in ${waitingTime}ms`,
-			error,
-		);
+		console.error(`✘ Something wrong occurred while computing trip updates, retrying in ${waitingTime}ms`, error);
 	} else {
-		console.log(
-			`✓ Done processing ${tripUpdatesCount} trip updates and ${vehiclePositionsCount} vehicle positions, waiting for ${waitingTime}ms`,
-		);
+		console.log(`✓ Done processing ${tripUpdatesCount} trip updates, waiting for ${waitingTime}ms`);
 	}
 
 	await setTimeout(waitingTime);
